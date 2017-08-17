@@ -2,6 +2,8 @@
 """
 Corfu Instance
 """
+from docker.errors import NotFound
+
 from constants import CORFU_SERVER_SCRIPT, CORFU_IMAGE, CORFU_DOCKER_NETWORK
 from constants import DEFAULT_PORT, DEFAULT_CONSOLE_LOG_PATH, DEFAULT_LOG_PATH, DEFAULT_IP_ADDRESS
 
@@ -48,7 +50,7 @@ class Node(object):
         Note: If the server crashes, the container stops. This helps in monitoring servers.
         :return:
         """
-        if not Node.check_if_container_exists(self.client, self.endpoint):
+        if Node.check_if_container_exists(self.client, self.endpoint):
             return None
         container = self.client.containers.run(image=CORFU_IMAGE,
                                                command=["sh", "-c", self.generate_run_command()],
@@ -59,26 +61,37 @@ class Node(object):
         return container
 
     @staticmethod
-    def check_if_container_exists(client, name) -> bool:
+    def check_if_container_exists(client, name) -> object:
         """
-        Checks if this container name is already taken.
+        Checks if container with this name exists.
         :param client: Client to connect to.
         :param name: Name of container.
-        :return: True if name is unique else False.
+        :return: Container if found else None.
         """
-        if not client.containers.list():
-            return False
-        for container in client.containers.list():
-            if name == container.name:
-                return False
-        return True
+        try:
+            return client.containers.get(name)
+        except NotFound as error:
+            return None
 
     @staticmethod
-    def remove_container(container):
+    def remove_container(client, name):
         """
         Removes the container forcefully.
         """
+        container = Node.unpause_container(client, name)
         container.remove(force=True)
+
+    @staticmethod
+    def unpause_container(client, name):
+        """
+        Unpauses container if already paused
+        """
+        if Node.check_if_container_exists(client, name):
+            container = client.containers.get(name)
+            if container.status != "paused":
+                return container
+            container.unpause()
+            return client.containers.get(name)
 
     @staticmethod
     def start_corfu(container):
@@ -88,10 +101,11 @@ class Node(object):
         container.start()
 
     @staticmethod
-    def stop_corfu(container):
+    def stop_corfu(client, name):
         """
         Stops the corfu server container.
         """
+        container = Node.unpause_container(client, name)
         container.kill()
 
     @staticmethod

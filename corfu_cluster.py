@@ -130,8 +130,7 @@ class Cluster(object):
             if not Node.check_if_container_exists(self.client, Node.get_name_from_endpoint(endpoint)):
                 continue
             name = Node.get_name_from_endpoint(endpoint)
-            container = self.client.containers.get(name)
-            future_list.append(self.executor.submit(Node.remove_container, container))
+            future_list.append(self.executor.submit(Node.remove_container, self.client, name))
 
         for future in future_list:
             future.result()
