@@ -19,8 +19,6 @@ class Node(object):
     log_path = DEFAULT_LOG_PATH
     endpoint = "_".join(["corfu", address, port])
 
-    container = None
-
     def __init__(self, client, port=DEFAULT_PORT, memory=False, log_path=DEFAULT_LOG_PATH, single=False,
                  address=DEFAULT_IP_ADDRESS) -> None:
         self.client = client
@@ -50,7 +48,7 @@ class Node(object):
         Note: If the server crashes, the container stops. This helps in monitoring servers.
         :return:
         """
-        if not self.check_name_unique(self.endpoint):
+        if not Node.check_if_container_exists(self.client, self.endpoint):
             return None
         container = self.client.containers.run(image=CORFU_IMAGE,
                                                command=["sh", "-c", self.generate_run_command()],
@@ -60,31 +58,47 @@ class Node(object):
         self.client.networks.get(CORFU_DOCKER_NETWORK).connect(container, ipv4_address=self.address)
         return container
 
-    def check_name_unique(self, name) -> bool:
+    @staticmethod
+    def check_if_container_exists(client, name) -> bool:
         """
         Checks if this container name is already taken.
+        :param client: Client to connect to.
         :param name: Name of container.
         :return: True if name is unique else False.
         """
-        for container in self.client.containers.list():
+        if not client.containers.list():
+            return False
+        for container in client.containers.list():
             if name == container.name:
                 return False
         return True
 
-    def remove_container(self):
+    @staticmethod
+    def remove_container(container):
         """
         Removes the container forcefully.
         """
-        self.container.remove(force=True)
+        container.remove(force=True)
 
-    def start_corfu(self):
+    @staticmethod
+    def start_corfu(container):
         """
         Starts a stopped container.
         """
-        self.container.start()
+        container.start()
 
-    def stop_corfu(self):
+    @staticmethod
+    def stop_corfu(container):
         """
         Stops the corfu server container.
         """
-        self.container.kill()
+        container.kill()
+
+    @staticmethod
+    def get_name_from_endpoint(endpoint):
+        """
+        Returns the container name from the node endpoint
+        :param endpoint: Endpoint of the node.
+        :return: Container name
+        """
+        return endpoint.replace(":", "_")
