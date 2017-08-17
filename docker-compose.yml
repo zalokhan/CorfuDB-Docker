@@ -1,0 +1,7 @@
+version: '3'
+services:
+  corfu:
+    image: corfudb/corfu
+    command: sh -c 'corfu_server -a $$(ifconfig | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" | head -1) -l /var/corfu
+     9000 >> /var/log/corfu.9000.log'
+    tty: true
