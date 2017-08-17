@@ -20,15 +20,17 @@ class Node(object):
     memory = False
     log_path = DEFAULT_LOG_PATH
     endpoint = "_".join(["corfu", address, port])
+    logging_level = "INFO"
 
     def __init__(self, client, port=DEFAULT_PORT, memory=False, log_path=DEFAULT_LOG_PATH, single=False,
-                 address=DEFAULT_IP_ADDRESS) -> None:
+                 address=DEFAULT_IP_ADDRESS, logging_level="INFO") -> None:
         self.client = client
         self.address = address
         self.port = str(port)
         self.single = single
         self.memory = memory
         self.log_path = log_path
+        self.logging_level = logging_level
         self.endpoint = "_".join([address, port])
 
     def generate_run_command(self):
@@ -94,10 +96,11 @@ class Node(object):
             return client.containers.get(name)
 
     @staticmethod
-    def start_corfu(container):
+    def start_corfu(client, name):
         """
         Starts a stopped container.
         """
+        container = Node.unpause_container(client, name)
         container.start()
 
     @staticmethod

@@ -3,8 +3,7 @@
 Constants
 """
 
-# CORFU_IMAGE = "corfudb/corfu:latest"
-CORFU_IMAGE = "corfu_test"
+CORFU_IMAGE = "corfudb/corfu:latest"
 CORFU_SERVER_SCRIPT = "corfu_server"
 CORFU_DOCKER_NETWORK = "corfunet"
 

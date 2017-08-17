@@ -72,18 +72,20 @@ class Cluster(object):
                                           volumes={os.path.abspath(layout): {'bind': '/tmp/layout', 'mode': 'ro'}}) \
             .decode("utf-8")
 
-    def get_layout(self, layout):
+    def get_layout(self, endpoints=[]):
         """
         Prints the layout by querying one of the layout servers.
-        :param layout: Layout to parse the layout server endpoints.
+        :param endpoints: List of endpoints to query layout from.
         """
-        endpoints = set()
-        endpoints.update(layout['layoutServers'])
-        print(self.client.containers.run(CORFU_IMAGE,
-                                         ["sh", "-c", "corfu_layouts -c "
-                                          + ",".join(endpoints) + " query"],
-                                         name="layout_getter", remove=True, network=CORFU_DOCKER_NETWORK, tty=True)
-              .decode("utf-8"))
+        output = self.client.containers.run(CORFU_IMAGE,
+                                            ["sh", "-c", "corfu_layouts -c "
+                                             + ",".join(endpoints) + " query"],
+                                            name="layout_getter", remove=True, network=CORFU_DOCKER_NETWORK,
+                                            tty=True) \
+            .decode("utf-8")
+        # Clean this hack. This is to remove the Warning... of the cmdlet.
+        output = '\n'.join(output.split('\n')[1:])
+        return json.loads(output)
 
     def spawn_node(self, endpoint):
         """
@@ -116,7 +118,7 @@ class Cluster(object):
             future.result()
 
         self.bootstrap_cluster(self.layout)
-        print("Cluster bootstrapped successfully.")
+        print("Cluster setup successful.")
         return self
 
     def destroy_cluster(self):
@@ -134,6 +136,7 @@ class Cluster(object):
 
         for future in future_list:
             future.result()
+        print("Cluster destroyed.")
 
 
 def to_json(layout_file):
