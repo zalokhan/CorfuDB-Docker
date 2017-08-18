@@ -9,9 +9,11 @@ from concurrent.futures import ThreadPoolExecutor
 from docker import types
 from docker.errors import NotFound
 
+from constants import CMDLET_LAYOUT_QUERY, CMDLET_CLUSTER_BOOTSTRAP
 from constants import CORFU_DOCKER_NETWORK, SUBNET, GATEWAY
 from constants import CORFU_IMAGE
 from corfu_node import Node
+from timeout import timeout
 
 
 class Cluster(object):
@@ -62,25 +64,31 @@ class Cluster(object):
         endpoints.update(layout['unresponsiveServers'])
         return endpoints
 
+    @timeout(seconds=60, container_to_kill=CMDLET_CLUSTER_BOOTSTRAP)
     def bootstrap_cluster(self, layout):
         """
         Bootstraps the cluster with the given layout using the cmdlet.
         :param layout: layout to bootstrap the cluster.
         """
         return self.client.containers.run(CORFU_IMAGE, ["sh", "-c", "corfu_bootstrap_cluster -l /tmp/layout"],
-                                          name="orchestrator", remove=True, network=CORFU_DOCKER_NETWORK, tty=True,
+                                          name=CMDLET_CLUSTER_BOOTSTRAP, remove=True, network=CORFU_DOCKER_NETWORK,
+                                          tty=True,
                                           volumes={os.path.abspath(layout): {'bind': '/tmp/layout', 'mode': 'ro'}}) \
             .decode("utf-8")
 
-    def get_layout(self, endpoints=[]):
+    @timeout(container_to_kill=CMDLET_LAYOUT_QUERY)
+    def get_layout(self, endpoints):
         """
         Prints the layout by querying one of the layout servers.
+        This will get stuck in a deadlock if the endpoint does not exist.
         :param endpoints: List of endpoints to query layout from.
         """
+        # Assert if endpoints is a list
+        assert isinstance(endpoints, list)
         output = self.client.containers.run(CORFU_IMAGE,
                                             ["sh", "-c", "corfu_layouts -c "
                                              + ",".join(endpoints) + " query"],
-                                            name="layout_getter", remove=True, network=CORFU_DOCKER_NETWORK,
+                                            name=CMDLET_LAYOUT_QUERY, remove=True, network=CORFU_DOCKER_NETWORK,
                                             tty=True) \
             .decode("utf-8")
         # Clean this hack. This is to remove the Warning... of the cmdlet.
