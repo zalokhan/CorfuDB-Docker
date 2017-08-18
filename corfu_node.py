@@ -81,7 +81,8 @@ class Node(object):
         Removes the container forcefully.
         """
         container = Node.unpause_container(client, name)
-        container.remove(force=True)
+        if container is not None:
+            container.remove(force=True)
 
     @staticmethod
     def unpause_container(client, name):
@@ -94,6 +95,7 @@ class Node(object):
                 return container
             container.unpause()
             return client.containers.get(name)
+        return None
 
     @staticmethod
     def start_corfu(client, name):

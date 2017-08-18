@@ -8,7 +8,7 @@ CORFU_SERVER_SCRIPT = "corfu_server"
 CORFU_DOCKER_NETWORK = "corfunet"
 
 DEFAULT_PORT = "9000"
-DEFAULT_CONSOLE_LOG_PATH = "/var/log/corfu.9000.log"
+DEFAULT_CONSOLE_LOG_PATH = "/var/log/corfu." + DEFAULT_PORT + ".log"
 DEFAULT_LOG_PATH = "/var/corfu"
 DEFAULT_IP_ADDRESS = "localhost"
 

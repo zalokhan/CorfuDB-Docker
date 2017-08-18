@@ -91,8 +91,8 @@ class Cluster(object):
                                             name=CMDLET_LAYOUT_QUERY, remove=True, network=CORFU_DOCKER_NETWORK,
                                             tty=True) \
             .decode("utf-8")
-        # Clean this hack. This is to remove the Warning... of the cmdlet.
-        output = '\n'.join(output.split('\n')[1:])
+        # Clean this hack. This is to remove the Warning... and errors (if any) of the cmdlet.
+        output = output[output.find('{'):]
         return json.loads(output)
 
     def spawn_node(self, endpoint):
