@@ -13,6 +13,14 @@ assert len(sys.argv) > 1
 
 client = docker.from_env()
 cluster = Cluster(sys.argv[1], client)
-cluster.setup_cluster()
+
+# Creates the cluster and returns a list of nodes.
+node_list = cluster.setup_cluster()
+
+# Fetches the layout from 192.168.0.5
 pprint(cluster.get_layout(["192.168.0.5:9000"]))
+# Executes a command on the given node.
+print(node_list[1].execute_command("ls -la /var/corfu/"))
+
+# Destroys the cluster by removing all the nodes.
 cluster.destroy_cluster()

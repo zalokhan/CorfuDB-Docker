@@ -38,12 +38,12 @@ class Node(object):
         Generates the command to run the corfu process with the specified options.
         :return:
         """
-        result = CORFU_SERVER_SCRIPT + " "
-        result += ("-a " + self.address + " ")
-        result += "-m " if self.memory else ("-l " + self.log_path + " ")
+        result = "{} ".format(CORFU_SERVER_SCRIPT)
+        result += "-a {} ".format(self.address)
+        result += "-m " if self.memory else "-l {} ".format(self.log_path)
         result += "-s " if self.single else ""
         result += str(self.port)
-        result += " >> " + DEFAULT_CONSOLE_LOG_PATH
+        result += " >> {}".format(DEFAULT_CONSOLE_LOG_PATH)
         return result
 
     def run_container(self):
@@ -61,6 +61,17 @@ class Node(object):
                                                tty=True)
         self.client.networks.get(CORFU_DOCKER_NETWORK).connect(container, ipv4_address=self.address)
         return container
+
+    def execute_command(self, command):
+        """
+        Executes the command on this node
+        :param command: Command to be executed.
+        :return: Returns the output of the command. None if node absent.
+        """
+        container = Node.check_if_container_exists(self.client, self.endpoint)
+        if container is None:
+            return None
+        return container.exec_run(["sh", "-c", command]).decode("utf-8")
 
     @staticmethod
     def check_if_container_exists(client, name) -> object:

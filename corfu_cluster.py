@@ -86,8 +86,7 @@ class Cluster(object):
         # Assert if endpoints is a list
         assert isinstance(endpoints, list)
         output = self.client.containers.run(CORFU_IMAGE,
-                                            ["sh", "-c", "corfu_layouts -c "
-                                             + ",".join(endpoints) + " query"],
+                                            ["sh", "-c", "corfu_layouts -c " + ",".join(endpoints) + " query"],
                                             name=CMDLET_LAYOUT_QUERY, remove=True, network=CORFU_DOCKER_NETWORK,
                                             tty=True) \
             .decode("utf-8")
@@ -107,27 +106,29 @@ class Cluster(object):
                     address=ip)
         run_result = node.run_container()
         if run_result:
-            print("Spawned container :" + Node.get_name_from_endpoint(endpoint))
+            print("Spawned container :{}".format(Node.get_name_from_endpoint(endpoint)))
         else:
-            print("Container " + Node.get_name_from_endpoint(endpoint) + " already running.")
+            print("Container {} already running.".format(Node.get_name_from_endpoint(endpoint)))
+        return node
 
-    def setup_cluster(self) -> object:
+    def setup_cluster(self) -> list:
         """
         Deploys the cluster, bootstraps and fetches the committed layout.
-        :return: Cluster instance.
+        :return: The list of nodes spawned.
         """
         endpoints = Cluster.get_endpoints(to_json(self.layout))
 
         future_list = []
+        node_list = []
         for endpoint in endpoints:
             future_list.append(self.executor.submit(self.spawn_node, endpoint))
 
         for future in future_list:
-            future.result()
+            node_list.append(future.result())
 
         self.bootstrap_cluster(self.layout)
         print("Cluster setup successful.")
-        return self
+        return node_list
 
     def destroy_cluster(self):
         """
