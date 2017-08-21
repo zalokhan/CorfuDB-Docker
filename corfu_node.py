@@ -3,6 +3,7 @@
 Corfu Instance
 """
 from docker.errors import NotFound
+from requests.packages.urllib3.response import HTTPResponse
 
 from constants import CORFU_SERVER_SCRIPT, CORFU_IMAGE, CORFU_DOCKER_NETWORK
 from constants import DEFAULT_PORT, DEFAULT_CONSOLE_LOG_PATH, DEFAULT_LOG_PATH, DEFAULT_IP_ADDRESS
@@ -72,6 +73,38 @@ class Node(object):
         if container is None:
             return None
         return container.exec_run(["sh", "-c", command]).decode("utf-8")
+
+    def save_data_log(self, path=None):
+        """
+        Saves the data log of the container endpoint to the specified path.
+        :param path: Path to save the data logs.
+        :return:
+        """
+        if not path:
+            path = "/tmp/{}_data.tar".format(self.endpoint)
+        # HTTPResponse archive from container.
+        data_log = HTTPResponse(self.client.containers.get(self.endpoint).get_archive("/var/corfu")[0])
+
+        data_log_file = open(path, mode="wb")
+        data_log_file.write(data_log.data)
+        data_log_file.close()
+        return
+
+    def save_console_log(self, path=None):
+        """
+        Saves the console log of the container to the specified path.
+        :param path: Path to save the console log.
+        :return:
+        """
+        if not path:
+            path = "/tmp/{}_console_log.tar".format(self.endpoint)
+        # HTTPResponse archive from container.
+        console_log = HTTPResponse(self.client.containers.get(self.endpoint).get_archive("/var/log/corfu.9000.log*")[0])
+
+        console_log_file = open(path, mode="wb")
+        console_log_file.write(console_log.data)
+        console_log_file.close()
+        return
 
     @staticmethod
     def check_if_container_exists(client, name) -> object:
