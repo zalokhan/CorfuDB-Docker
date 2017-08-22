@@ -23,6 +23,7 @@ class Cluster(object):
     layout = None
     client = None
     executor = ThreadPoolExecutor(max_workers=5)
+    node_list = list()
 
     def __init__(self, layout, client) -> None:
         self.layout = layout
@@ -106,9 +107,7 @@ class Cluster(object):
                     address=ip)
         run_result = node.run_container()
         if run_result:
-            print("Spawned container :{}".format(Node.get_name_from_endpoint(endpoint)))
-        else:
-            print("Container {} already running.".format(Node.get_name_from_endpoint(endpoint)))
+            print("Spawned endpoint :{}".format(endpoint))
         return node
 
     def setup_cluster(self) -> list:
@@ -119,29 +118,24 @@ class Cluster(object):
         endpoints = Cluster.get_endpoints(to_json(self.layout))
 
         future_list = []
-        node_list = []
         for endpoint in endpoints:
             future_list.append(self.executor.submit(self.spawn_node, endpoint))
 
         for future in future_list:
-            node_list.append(future.result())
+            self.node_list.append(future.result())
 
         self.bootstrap_cluster(self.layout)
         print("Cluster setup successful.")
-        return node_list
+        return self.node_list
 
     def destroy_cluster(self):
         """
         Destroys all the nodes in the given layout.
         :return:
         """
-        endpoints = Cluster.get_endpoints(to_json(self.layout))
-        future_list = []
-        for endpoint in endpoints:
-            if not Node.check_if_container_exists(self.client, Node.get_name_from_endpoint(endpoint)):
-                continue
-            name = Node.get_name_from_endpoint(endpoint)
-            future_list.append(self.executor.submit(Node.remove_container, self.client, name))
+        future_list = list()
+        for node in self.node_list:
+            future_list.append(self.executor.submit(node.remove))
 
         for future in future_list:
             future.result()
